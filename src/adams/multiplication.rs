@@ -671,11 +671,16 @@ impl AdamsMultiplication {
             + Send
             + Sync,
     {
+        let s_line = query::optional("Compute s-line?", str::parse::<u32>);
         let lhs_max = lhs_max.meet(self.max_deg()); // don't go out of range
         let rhs_max = rhs_max.meet(self.max_deg()); // don't go out of range
         let f = Arc::new(callback);
         lhs_max
             .iter_s_t()
+            .filter(|bideg| match s_line {
+                Some(s) => bideg.s() == s,
+                None => true,
+            })
             .par_bridge()
             .map(|lhs| {
                 let dim = match self.num_gens_bidegree(lhs) {
