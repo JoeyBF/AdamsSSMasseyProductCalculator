@@ -12,9 +12,17 @@ use adams::{AdamsGenerator, AdamsMultiplication, Bidegree};
 fn callback(
     lhs: AdamsGenerator,
     _max_rhs_deg_computed: Bidegree,
-    _matrices: &DashMap<Bidegree, Matrix>,
+    matrices: &DashMap<Bidegree, Matrix>,
 ) -> Result<(), String> {
-    println!("Multiplications computed for {}", lhs);
+    eprintln!("Multiplications computed for {}", lhs);
+    for bideg in matrices.iter() {
+        let bidegree = bideg.key();
+        let matrix = bideg.value();
+        for (idx, row) in matrix.iter().enumerate().filter(|(_, row)| !row.is_zero()) {
+            let gen: AdamsGenerator = (*bidegree, idx).into();
+            println!("{} * {} = {}", lhs, gen, row);
+        }
+    }
     Ok(())
 }
 
@@ -31,7 +39,7 @@ fn main() -> Result<()> {
         |filename| core::result::Result::<_, std::convert::Infallible>::Ok(String::from(filename)),
     );
 
-    println!("Loading resolution...");
+    eprintln!("Loading resolution...");
     let mut adams_mult: AdamsMultiplication = AdamsMultiplication::new(
         save_file_name,
         None,
@@ -40,7 +48,7 @@ fn main() -> Result<()> {
         None,
     )?;
 
-    println!("Computing multiplications...");
+    eprintln!("Computing multiplications...");
     match adams_mult.compute_all_multiplications_callback(true, callback) {
         Ok(_) => {}
         Err(err_info) => {
