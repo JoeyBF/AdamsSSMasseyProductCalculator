@@ -6,12 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ext = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.2", default-features = false }
-algebra = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.2", default-features = false, features = ["json"] }
-bivec = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.2" }
-fp = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.2", default-features = false }
-once = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.2" }
-query = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.2" }
+ext = { git = "https://github.com/spectralsequences/sseq/", default-features = false }
+algebra = { git = "https://github.com/spectralsequences/sseq/", default-features = false, features = ["json"] }
+bivec = { git = "https://github.com/spectralsequences/sseq/" }
+fp = { git = "https://github.com/spectralsequences/sseq/", default-features = false }
+once = { git = "https://github.com/spectralsequences/sseq/" }
+query = { git = "https://github.com/spectralsequences/sseq/" }
 
 anyhow = "1.0.0"
 dashmap = "5.1.0"
@@ -19,7 +19,9 @@ rayon = { version = "1.5", optional = true }
 regex = "1.5.4"
 
 [features]
-default = ["concurrent", "zstd"]
+default = ["concurrent", "logging", "nassau", "zstd"]
 concurrent = ["ext/concurrent", "rayon"]
+logging = ["ext/logging"]
+nassau = ["ext/nassau"]
 save-res = []
-zstd = ["ext/use-zstd"]
+zstd = ["ext/zstd"]
