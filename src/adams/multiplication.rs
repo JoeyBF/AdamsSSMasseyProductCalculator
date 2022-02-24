@@ -13,9 +13,15 @@ use algebra::module::homomorphism::ModuleHomomorphism;
 use algebra::module::Module;
 
 use ext::chain_complex::{ChainComplex, ChainHomotopy, FreeChainComplex};
-use ext::resolution::Resolution;
+
+#[cfg(feature = "nassau")]
+use ext::nassau::Resolution as NassauResolution;
+#[cfg(not(feature = "nassau"))]
+use ext::resolution::Resolution as ExtResolution;
+
 use ext::resolution_homomorphism::ResolutionHomomorphism;
-use ext::utils::construct;
+
+#[cfg(not(feature = "nassau"))]
 use ext::CCC;
 
 use fp::matrix::Matrix;
@@ -24,17 +30,21 @@ use fp::prime::ValidPrime;
 use fp::vector::FpVector;
 
 use std::io;
-//use saveload::{Save, Load};
 
 use super::{AdamsElement, AdamsGenerator, Bidegree, MasseyProduct};
 
 use crate::lattice::{meet, JoinSemilattice, MeetSemilattice};
 use crate::utils::{get_max_defined_degree, AllVectorsIterator};
 
+#[cfg(feature = "nassau")]
+type Resolution = NassauResolution;
+#[cfg(not(feature = "nassau"))]
+type Resolution = ExtResolution<CCC>;
+
 //#[derive(Clone)]
 pub struct AdamsMultiplication {
     /// the resolution object
-    resolution: Arc<Resolution<CCC>>,
+    resolution: Arc<Resolution>,
     /// filename storing resolution data
     res_file_name: String,
     ///directory to incrementally store resolutions to save progress
@@ -197,12 +207,20 @@ impl AdamsMultiplication {
         let (max_s, max_t) = get_max_defined_degree(&save_path);
         eprintln!("Max degree detected: ({}, {})", max_s, max_t);
 
+        #[cfg(not(feature = "nassau"))]
         let res = Arc::new({
             let mut res = construct("S_2", Some(save_path))?;
             res.load_quasi_inverse = false;
             res
         });
 
+        #[cfg(feature = "nassau")]
+        let res = Arc::new(Resolution::new(Some(save_path)));
+
+        #[cfg(feature = "stem")]
+        res.compute_through_stem(max_s, max_t - max_s as i32);
+
+        #[cfg(not(feature = "stem"))]
         res.compute_through_bidegree(max_s, max_t);
 
         let result = AdamsMultiplication {
@@ -225,7 +243,7 @@ impl AdamsMultiplication {
     }
 
     /// return Arc to the resolution
-    pub fn resolution(&self) -> Arc<Resolution<CCC>> {
+    pub fn resolution(&self) -> Arc<Resolution> {
         self.resolution.clone()
     }
 
@@ -270,7 +288,7 @@ impl AdamsMultiplication {
     pub fn adams_gen_to_resoln_hom(
         &self,
         g: AdamsGenerator,
-    ) -> Result<ResolutionHomomorphism<Resolution<CCC>, Resolution<CCC>>, String> {
+    ) -> Result<ResolutionHomomorphism<Resolution, Resolution>, String> {
         let (s, t, idx) = g.into();
         let hom = ResolutionHomomorphism::new(
             format!("({},{},{})", s, t, idx),
@@ -292,7 +310,7 @@ impl AdamsMultiplication {
     pub fn try_load_resoln_hom_for_adams_gen(
         &self,
         g: AdamsGenerator,
-    ) -> io::Result<Option<ResolutionHomomorphism<Resolution<CCC>, Resolution<CCC>>>> {
+    ) -> io::Result<Option<ResolutionHomomorphism<Resolution, Resolution>>> {
         let path = match self.multiplication_hom_file_path(g) {
             Some(path) => path,
             None => return Ok(None), // no directory provided
@@ -300,7 +318,7 @@ impl AdamsMultiplication {
 
         if path.exists() {
             let mut file = File::open(path)?;
-            let res_hom = <ResolutionHomomorphism<Resolution<CCC>, Resolution<CCC>> as Load>::load(
+            let res_hom = <ResolutionHomomorphism<Resolution, Resolution> as Load>::load(
                 &mut file,
                 &(self.resolution.clone(), self.resolution.clone()),
             )?;
@@ -315,7 +333,7 @@ impl AdamsMultiplication {
     pub fn try_load_resoln_hom_for_adams_gen(
         &self,
         _g: AdamsGenerator,
-    ) -> io::Result<Option<ResolutionHomomorphism<Resolution<CCC>, Resolution<CCC>>>> {
+    ) -> io::Result<Option<ResolutionHomomorphism<Resolution, Resolution>>> {
         Ok(None)
     }
 
@@ -323,7 +341,7 @@ impl AdamsMultiplication {
     pub fn save_resoln_hom_for_adams_gen(
         &self,
         g: AdamsGenerator,
-        res_hom: &ResolutionHomomorphism<Resolution<CCC>, Resolution<CCC>>,
+        res_hom: &ResolutionHomomorphism<Resolution, Resolution>,
     ) -> io::Result<()> {
         let path = self.multiplication_hom_file_path(g).ok_or(io::Error::new(
             io::ErrorKind::Other,
@@ -337,7 +355,7 @@ impl AdamsMultiplication {
     pub fn save_resoln_hom_for_adams_gen(
         &self,
         _g: AdamsGenerator,
-        _res_hom: &ResolutionHomomorphism<Resolution<CCC>, Resolution<CCC>>,
+        _res_hom: &ResolutionHomomorphism<Resolution, Resolution>,
     ) -> io::Result<()> {
         Ok(())
     }
@@ -345,7 +363,7 @@ impl AdamsMultiplication {
     pub fn adams_elt_to_resoln_hom(
         &self,
         e: &AdamsElement,
-    ) -> ResolutionHomomorphism<Resolution<CCC>, Resolution<CCC>> {
+    ) -> ResolutionHomomorphism<Resolution, Resolution> {
         let (s, t, v) = e.into();
         let hom = ResolutionHomomorphism::new(
             format!("({},{},{})", s, t, v),
@@ -469,6 +487,115 @@ impl AdamsMultiplication {
         */
     }
 
+    #[cfg(feature = "stem")]
+    pub fn compute_multiplication(
+        &self,
+        g: AdamsGenerator,
+        mult_with_max: Bidegree,
+    ) -> Result<(Bidegree, DashMap<Bidegree, Matrix>), String> {
+        eprintln!("Computing multiplication for {}", g);
+        let (s, t, idx) = g.into();
+        let n = t - s as i32;
+        let g_deg = g.degree();
+        let max_deg = self.max_deg();
+        match g_deg.partial_cmp(&max_deg) {
+            None | Some(Ordering::Greater) => {
+                return Err(format!(
+                    "({}, {}, {}) is out of computed range: ({}, {})",
+                    s, t, idx, self.max_s, self.max_t
+                ))
+            }
+            _ => {}
+        };
+
+        let rmax_poss_s = self.max_s - s as u32;
+        let rmax_poss_t = self.max_t - t as i32;
+        let rmax_poss = (rmax_poss_s, rmax_poss_t).into();
+
+        let actual_rmax = mult_with_max.meet(rmax_poss);
+
+        let hm = DashMap::new();
+
+        let compute_to = actual_rmax;
+
+        let hom = self.adams_gen_to_resoln_hom(g)?;
+
+        let compute_to_s = compute_to.s();
+        let compute_to_n = compute_to.n();
+
+        // extend hom
+
+        hom.extend_through_stem(compute_to_s + s, compute_to_n + n);
+
+        // hom has been extended
+        // save the hom first
+        if self.has_resolution_homomorphism_data_directory() {
+            match self.save_resoln_hom_for_adams_gen(g, &hom) {
+                Ok(()) => (),
+                Err(err) => {
+                    eprintln!(
+                        "Failed to save resolution homomorphism for generator {}.\nError: {}",
+                        g, err
+                    );
+                }
+            };
+        }
+
+        // then read off and insert the multiplication matrices
+
+        // ok let's do the proper multiplications
+        for rhs in compute_to.iter_stem() {
+            // might want to iterate over stems, since these are the only nonzero ones, but for now
+            // we just skip those with n negative
+            if rhs.n() < 0 {
+                continue; // rhs trivially empty, since n is negative
+            }
+            let target_deg = (s + rhs.s(), t + rhs.t()).into();
+            let dim_rhs = match self.num_gens_bidegree(rhs) {
+                Some(n) => n,
+                None => {
+                    return Err(format!(
+                        "Dimension at rhs {} not computed. Expected for computing multiplication by {} in degree {}",
+                        rhs,
+                        g,
+                        rhs,
+                    ));
+                }
+            };
+            let dim_target = match self.num_gens_bidegree(target_deg) {
+                Some(n) => n,
+                None => {
+                    return Err(format!(
+                        "Dimension at target {} not computed. Expected for computing multiplication by {} in degree {}",
+                        target_deg,
+                        g,
+                        rhs,
+                    ));
+                } // this is an error
+            };
+            if dim_rhs == 0 || dim_target == 0 {
+                continue; // nothing in domain, or nothing in codomain, multiplication is trivially 0
+                          // store nothing
+            }
+            eprintln!("with {}", rhs);
+            //let gens2 = &module2.gen_names()[j2];
+            let matrix = hom.get_map(target_deg.s()).hom_k(rhs.t());
+            // convert to fp::matrix::Matrix and store
+            hm.insert(rhs, Matrix::from_vec(self.prime(), &matrix));
+        }
+        if self.has_multiplication_data_directory() {
+            match self.save_multiplications_for(g, compute_to, &hm) {
+                Ok(_) => {}
+                Err(e) => {
+                    return Err(e.to_string());
+                }
+            };
+        }
+
+        Ok((compute_to, hm))
+    }
+
+    #[cfg(not(feature = "stem"))]
     pub fn compute_multiplication(
         &self,
         g: AdamsGenerator,

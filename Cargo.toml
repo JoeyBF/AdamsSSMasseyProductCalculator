@@ -19,9 +19,10 @@ rayon = { version = "1.5", optional = true }
 regex = "1.5.4"
 
 [features]
-default = ["concurrent", "logging", "nassau", "zstd"]
+default = ["concurrent", "logging", "nassau", "stem", "zstd"]
 concurrent = ["ext/concurrent", "rayon"]
 logging = ["ext/logging"]
 nassau = ["ext/nassau"]
 save-res = []
+stem = []
 zstd = ["ext/zstd"]
