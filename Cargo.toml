@@ -6,12 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ext = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.2", default-features = false }
-algebra = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.2", default-features = false, features = ["json"] }
-bivec = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.2" }
-fp = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.2", default-features = false }
-once = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.2" }
-query = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.2" }
+ext = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.4", default-features = false, features = ["concurrent", "logging", "nassau", "zstd"] }
+algebra = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.4", default-features = false, features = ["json"] }
+bivec = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.4" }
+fp = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.4", default-features = false }
+once = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.4" }
+query = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.4" }
 
 anyhow = "1.0.0"
 dashmap = "5.1.0"
@@ -22,4 +22,4 @@ regex = "1.5.4"
 default = ["concurrent", "zstd"]
 concurrent = ["ext/concurrent", "rayon"]
 save-res = []
-zstd = ["ext/use-zstd"]
+zstd = ["ext/zstd"]
