@@ -19,7 +19,7 @@ pub use multiplication::AdamsMultiplication;
 
 /// type synonym for (s,t) bidegrees
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Bidegree {
     /// resolution degree
     s: u32,
@@ -166,7 +166,8 @@ impl Bidegree {
 
     /// Checks that the difference in s degrees is nonnegative.
     /// Returns difference as a bidegree if so, otherwise returns None.
-    pub fn try_subtract(&self, smaller: Bidegree) -> Option<Bidegree> {
+    pub fn try_subtract<T: Into<Bidegree>>(&self, smaller: T) -> Option<Bidegree> {
+        let smaller = smaller.into();
         if self.s >= smaller.s {
             Some(Bidegree {
                 s: self.s - smaller.s,
@@ -175,6 +176,13 @@ impl Bidegree {
         } else {
             None
         }
+    }
+
+    /// Computes the bidegree containing the Massey product of elements in the given bidegrees.
+    pub fn massey_bidegree(a: Bidegree, b: Bidegree, c: Bidegree) -> Bidegree {
+        (a + b + c)
+            .try_subtract((1, 0))
+            .expect("Trying to compute <1,1,1>")
     }
 }
 

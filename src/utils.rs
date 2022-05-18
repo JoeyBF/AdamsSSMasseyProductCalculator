@@ -1,47 +1,39 @@
 use fp::matrix::Subspace;
 use fp::prime::ValidPrime;
 use fp::vector::FpVector;
-use regex::Regex;
-
-use std::path::Path;
 
 use std::collections::HashMap;
 
+// use crate::adams::Bidegree;
+
 /// converts a vector in subspace coordinates to global coordinates
-pub fn subspace_to_global(subspace: &Subspace, vec: &FpVector) -> FpVector {
-    let mut result = FpVector::new(subspace.prime(), subspace.ambient_dimension());
-    subspace.apply(result.as_slice_mut(), 1, vec.as_slice());
-    result
+pub fn subspace_to_global(_subspace: &Subspace, _vec: &FpVector) -> FpVector {
+    todo!()
+    // let mut result = FpVector::new(subspace.prime(), subspace.ambient_dimension());
+    // subspace.apply(result.as_slice_mut(), 1, vec.as_slice());
+    // result
 }
 
-pub fn subspace_sum(lsub: &Subspace, rsub: &Subspace) -> Subspace {
-    let mut indet = Subspace::new(
-        lsub.prime(),
-        lsub.dimension() + rsub.dimension(),
-        lsub.ambient_dimension(),
-    );
-    indet.add_vectors(
-        lsub.iter()
-            .take(lsub.dimension())
-            .cloned()
-            .chain(rsub.iter().take(rsub.dimension()).cloned()),
-    );
-    indet
+pub fn subspace_sum(_lsub: &Subspace, _rsub: &Subspace) -> Subspace {
+    todo!()
+    // let mut indet = Subspace::new(
+    //     lsub.prime(),
+    //     lsub.dimension() + rsub.dimension(),
+    //     lsub.ambient_dimension(),
+    // );
+    // indet.add_vectors(
+    //     lsub.iter()
+    //         .take(lsub.dimension())
+    //         .cloned()
+    //         .chain(rsub.iter().take(rsub.dimension()).cloned()),
+    // );
+    // indet
 }
 
 pub fn subspace_equality(lsub: &Subspace, rsub: &Subspace) -> bool {
-    if lsub.prime() != rsub.prime() {
-        return false;
-    }
-    if lsub.dimension() != rsub.dimension() {
-        return false;
-    }
-    for v in lsub.basis() {
-        if !rsub.contains(v.as_slice()) {
-            return false;
-        }
-    }
-    true
+    lsub.prime() == rsub.prime()
+        && lsub.dimension() == rsub.dimension()
+        && lsub.basis().iter().all(|f| rsub.contains(f.as_slice()))
 }
 
 pub fn get_max_defined_degree<P: AsRef<Path>>(save_path: P) -> (u32, i32) {

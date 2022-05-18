@@ -82,6 +82,17 @@ impl<'a> From<&'a AdamsElement> for (u32, i32, &'a FpVector) {
     }
 }
 
+impl From<AdamsElement> for (Bidegree, FpVector) {
+    fn from(elt: AdamsElement) -> Self {
+        ((elt.s, elt.t).into(), elt.vec) // taken by move, so move out
+    }
+}
+impl<'a> From<&'a AdamsElement> for (Bidegree, &'a FpVector) {
+    fn from(elt: &'a AdamsElement) -> Self {
+        ((elt.s(), elt.t()).into(), elt.vec()) // use method .vec() to avoid moving
+    }
+}
+
 /*
 impl Save for AdamsElement {
     fn save(&self, buffer: &mut impl Write) -> io::Result<()> {
