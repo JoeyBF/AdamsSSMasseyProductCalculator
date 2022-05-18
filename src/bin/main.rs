@@ -4,7 +4,6 @@
 use massey::*;
 
 use fp::vector::FpVector;
-use std::clone::Clone;
 
 use adams::AdamsMultiplication;
 
@@ -45,29 +44,15 @@ impl Save for AdamsMultiplication {
 */
 
 fn main() -> anyhow::Result<()> {
-    let save_file_name = String::from("../massey-prod-calc-data/S_2_resolution.data");
-    let resolution_saves_directory =
-        String::from("../massey-prod-calc-data/S_2_resolution_incremental_data");
-    let multiplication_data_directory =
-        String::from("../massey-prod-calc-data/S_2_multiplication_data");
-    let massey_product_data_directory =
-        String::from("../massey-prod-calc-data/S_2_massey_prod_data");
-
-    let max_s = 33;
-    let max_t = 105;
+    let max_s = 20;
+    let max_t = 40;
     //let mult_max_s=15;
     //let mult_max_t=30;
     //let mult_with_max_s=15;
     //let mult_with_max_t=30;
 
     println!("Loading and extending resolution...");
-    let mut adams_mult: AdamsMultiplication = AdamsMultiplication::new(
-        save_file_name,
-        Some(resolution_saves_directory),
-        Some(multiplication_data_directory.clone()),
-        Some(multiplication_data_directory),
-        Some(massey_product_data_directory),
-    )?;
+    let mut adams_mult: AdamsMultiplication = AdamsMultiplication::new()?;
     let prime = adams_mult.prime();
 
     adams_mult.extend_resolution_to((max_s, max_t).into())?;

@@ -36,26 +36,6 @@ pub fn subspace_equality(lsub: &Subspace, rsub: &Subspace) -> bool {
         && lsub.basis().iter().all(|f| rsub.contains(f.as_slice()))
 }
 
-pub fn get_max_defined_degree<P: AsRef<Path>>(save_path: P) -> (u32, i32) {
-    let with_result = |save_path: P| {
-        let diff_dir = save_path.as_ref().join("differentials");
-        let s_t_regex = Regex::new(r"(?P<s>\d+)_(?P<t>\d+)_differential").unwrap();
-        let mut max = (0, 0);
-        for differential in std::fs::read_dir(diff_dir)? {
-            let differential = differential?;
-            let filename = differential.file_name();
-            let filename = filename.to_str().ok_or(anyhow::anyhow!(""))?;
-            let cap = s_t_regex.captures(filename).ok_or(anyhow::anyhow!(""))?;
-            let s_t = (str::parse(&cap["s"])?, str::parse(&cap["t"])?);
-            if s_t > max {
-                max = s_t;
-            }
-        }
-        anyhow::Ok(max)
-    };
-    with_result(save_path).unwrap_or((0, 0))
-}
-
 #[derive(Clone, Debug)]
 pub struct AllVectorsIterator {
     subspace: Subspace,

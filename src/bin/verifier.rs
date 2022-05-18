@@ -18,25 +18,11 @@ use adams::{AdamsElement, AdamsMultiplication, Bidegree, MasseyProduct};
 use affinespace::AffineSpace;
 
 fn main() -> Result<()> {
-    let save_file_name = String::from("../massey-prod-calc-data/S_2_resolution.data");
-    let resolution_saves_directory =
-        String::from("../massey-prod-calc-data/S_2_resolution_incremental_data");
-    let multiplication_data_directory =
-        String::from("../massey-prod-calc-data/S_2_multiplication_data");
-    let massey_product_data_directory =
-        String::from("../massey-prod-calc-data/S_2_massey_prod_data");
-
     let max_s = 33;
     let max_t = 105;
 
     println!("Loading and extending resolution...");
-    let mut adams_mult: AdamsMultiplication = AdamsMultiplication::new(
-        save_file_name,
-        Some(resolution_saves_directory),
-        Some(multiplication_data_directory.clone()),
-        Some(multiplication_data_directory),
-        Some(massey_product_data_directory),
-    )?;
+    let mut adams_mult: AdamsMultiplication = AdamsMultiplication::new()?;
     let prime = adams_mult.prime();
 
     adams_mult.extend_resolution_to((max_s, max_t).into())?;
@@ -87,7 +73,7 @@ fn main() -> Result<()> {
     println!("Checking additivity...");
     for (bidegree, prods) in &massey_map {
         let a_dim = adams_mult
-            .num_gens_bidegree(*bidegree)
+            .num_gens(*bidegree)
             .expect("Bidegree should be computed");
         if a_dim > 1 {
             println!("For bidegree {} which has dimension {}...", bidegree, a_dim);
