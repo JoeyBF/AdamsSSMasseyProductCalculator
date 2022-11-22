@@ -21,7 +21,7 @@ fn main() -> Result<()> {
     let max_s = 33;
     let max_t = 105;
 
-    println!("Loading and extending resolution...");
+    eprintln!("Loading and extending resolution...");
     let mut adams_mult: AdamsMultiplication = AdamsMultiplication::new()?;
     let prime = adams_mult.prime();
 
@@ -29,7 +29,7 @@ fn main() -> Result<()> {
 
     //fp::vector::initialize_limb_bit_index_table(adams_mult.resolution().prime());
 
-    println!("Loading and computing multiplications...");
+    eprintln!("Loading and computing multiplications...");
     match adams_mult.compute_all_multiplications() {
         Ok(_) => {}
         Err(err_info) => {
@@ -41,7 +41,7 @@ fn main() -> Result<()> {
     let h1: AdamsElement = (1, 2, FpVector::from_slice(prime, &[1])).into();
     //let max_massey_deg = (32,102).into();
 
-    println!("Loading Massey products...");
+    eprintln!("Loading Massey products...");
     let massey_h1_h0: Vec<(AdamsElement, MasseyProduct)> = Vec::new();
     /*
     {
@@ -56,7 +56,7 @@ fn main() -> Result<()> {
         }
     }
     */
-    println!("{} products loaded", massey_h1_h0.len());
+    eprintln!("{} products loaded", massey_h1_h0.len());
     // reorganize massey products by a's bidegree to make recognizing additive failure easier
     let mut massey_map: HashMap<Bidegree, HashMap<FpVector, MasseyProduct>> = HashMap::new();
     for (a, prod) in &massey_h1_h0 {
@@ -70,13 +70,13 @@ fn main() -> Result<()> {
         }
     }
     // check additivity
-    println!("Checking additivity...");
+    eprintln!("Checking additivity...");
     for (bidegree, prods) in &massey_map {
         let a_dim = adams_mult
             .num_gens(*bidegree)
             .expect("Bidegree should be computed");
         if a_dim > 1 {
-            println!("For bidegree {} which has dimension {}...", bidegree, a_dim);
+            eprintln!("For bidegree {} which has dimension {}...", bidegree, a_dim);
 
             for v1 in utils::AllVectorsIterator::new_whole_space(prime, a_dim) {
                 let ae1 = (*bidegree, &v1).into();
@@ -128,8 +128,8 @@ fn main() -> Result<()> {
                     );
                     match prod3.partial_cmp(&affine) {
                         None | Some(Ordering::Greater) => {
-                            println!("Additivity fails for {} + {} = {}.", ae1, ae2, ae3);
-                            println!("Have {} !<= {} + {}", prod3, prod1, prod2);
+                            eprintln!("Additivity fails for {} + {} = {}.", ae1, ae2, ae3);
+                            eprintln!("Have {} !<= {} + {}", prod3, prod1, prod2);
                         }
                         _ => {}
                     }

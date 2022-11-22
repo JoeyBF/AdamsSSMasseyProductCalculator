@@ -1,4 +1,4 @@
-use super::Bidegree;
+use super::{AdamsElement, Bidegree};
 
 use std::fmt;
 use std::fmt::{Display, Formatter};
@@ -16,23 +16,34 @@ pub struct AdamsGenerator {
 }
 
 impl AdamsGenerator {
+    pub fn new(s: u32, t: i32, idx: usize) -> AdamsGenerator {
+        AdamsGenerator { s, t, idx }
+    }
+
     pub fn s(&self) -> u32 {
         self.s
     }
+
     pub fn t(&self) -> i32 {
         self.t
     }
+
     pub fn degree(&self) -> Bidegree {
         (self.s, self.t).into()
     }
+
     pub fn n(&self) -> i32 {
         self.t - self.s as i32
     }
+
     pub fn idx(&self) -> usize {
         self.idx
     }
-    pub fn new(s: u32, t: i32, idx: usize) -> AdamsGenerator {
-        AdamsGenerator { s, t, idx }
+
+    pub fn vector(&self, dim: usize) -> Vec<u32> {
+        let mut ret = vec![0; dim];
+        ret[self.idx] = 1;
+        ret
     }
 }
 
@@ -61,24 +72,30 @@ impl From<AdamsGenerator> for (u32, i32, usize) {
     }
 }
 
-/*
-impl Save for AdamsGenerator {
-    fn save(&self, buffer: &mut impl Write) -> io::Result<()> {
-        self.s.save(buffer)?;
-        self.t.save(buffer)?;
-        self.idx.save(buffer)?;
-        Ok(())
+impl TryFrom<AdamsElement> for AdamsGenerator {
+    type Error = ();
+
+    fn try_from(value: AdamsElement) -> Result<Self, Self::Error> {
+        let (s, t, v) = value.into();
+        if v.iter().sum::<u32>() == 1 {
+            let (idx, _) = v.first_nonzero().unwrap();
+            Ok((s, t, idx).into())
+        } else {
+            Err(())
+        }
     }
 }
 
-impl Load for AdamsGenerator {
-    type AuxData = ();
+impl<'a> TryFrom<&'a AdamsElement> for AdamsGenerator {
+    type Error = ();
 
-    fn load(buffer: &mut impl Read, _: &Self::AuxData) -> io::Result<Self> {
-        let s = u32::load(buffer, &())?;
-        let t = i32::load(buffer, &())?;
-        let idx = usize::load(buffer, &())?;
-        Ok(AdamsGenerator { s, t, idx })
+    fn try_from(value: &'a AdamsElement) -> Result<Self, Self::Error> {
+        let (s, t, v) = value.into();
+        if v.iter().sum::<u32>() == 1 {
+            let (idx, _) = v.first_nonzero().unwrap();
+            Ok((s, t, idx).into())
+        } else {
+            Err(())
+        }
     }
 }
-*/

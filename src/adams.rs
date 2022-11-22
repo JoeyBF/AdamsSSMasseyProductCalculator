@@ -271,17 +271,17 @@ impl Load for Bidegree {
 
 impl MeetSemilattice for Bidegree {
     fn meet(self, rhs: Bidegree) -> Bidegree {
-        Bidegree {
-            s: meet(self.s, rhs.s),
-            t: meet(self.t, rhs.t),
-        }
+        let s = meet(self.s, rhs.s);
+        let n = meet(self.n(), rhs.n());
+        let t = s as i32 + n;
+        Bidegree { s, t }
     }
 }
 impl JoinSemilattice for Bidegree {
     fn join(self, rhs: Bidegree) -> Bidegree {
-        Bidegree {
-            s: join(self.s, rhs.s),
-            t: join(self.t, rhs.t),
-        }
+        let s = join(self.s, rhs.s);
+        let n = join(self.n(), rhs.n());
+        let t = s as i32 + n;
+        Bidegree { s, t }
     }
 }

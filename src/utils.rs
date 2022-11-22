@@ -7,27 +7,28 @@ use std::collections::HashMap;
 // use crate::adams::Bidegree;
 
 /// converts a vector in subspace coordinates to global coordinates
-pub fn subspace_to_global(_subspace: &Subspace, _vec: &FpVector) -> FpVector {
-    todo!()
-    // let mut result = FpVector::new(subspace.prime(), subspace.ambient_dimension());
-    // subspace.apply(result.as_slice_mut(), 1, vec.as_slice());
-    // result
+pub fn subspace_to_global(subspace: &Subspace, vec: &FpVector) -> FpVector {
+    let mut result = FpVector::new(subspace.prime(), subspace.ambient_dimension());
+    subspace
+        .matrix
+        .apply(result.as_slice_mut(), 1, vec.as_slice());
+    result
 }
 
-pub fn subspace_sum(_lsub: &Subspace, _rsub: &Subspace) -> Subspace {
-    todo!()
-    // let mut indet = Subspace::new(
-    //     lsub.prime(),
-    //     lsub.dimension() + rsub.dimension(),
-    //     lsub.ambient_dimension(),
-    // );
-    // indet.add_vectors(
-    //     lsub.iter()
-    //         .take(lsub.dimension())
-    //         .cloned()
-    //         .chain(rsub.iter().take(rsub.dimension()).cloned()),
-    // );
-    // indet
+pub fn subspace_sum(lsub: &Subspace, rsub: &Subspace) -> Subspace {
+    let mut indet = Subspace::new(
+        lsub.prime(),
+        lsub.dimension() + rsub.dimension(),
+        lsub.ambient_dimension(),
+    );
+    for slice in lsub
+        .iter()
+        .take(lsub.dimension())
+        .chain(rsub.iter().take(rsub.dimension()))
+    {
+        indet.add_vector(slice);
+    }
+    indet
 }
 
 pub fn subspace_equality(lsub: &Subspace, rsub: &Subspace) -> bool {

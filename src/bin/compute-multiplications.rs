@@ -14,15 +14,15 @@ fn callback(
     _max_rhs_deg_computed: Bidegree,
     _matrices: &DashMap<Bidegree, Matrix>,
 ) -> Result<(), String> {
-    println!("Multiplications computed for {}", lhs);
+    eprintln!("Multiplications computed for {}", lhs);
     Ok(())
 }
 
 fn main() -> Result<()> {
-    println!("Loading resolution...");
+    eprintln!("Loading resolution...");
     let mut adams_mult: AdamsMultiplication = AdamsMultiplication::new()?;
 
-    println!("Computing multiplications...");
+    eprintln!("Computing multiplications...");
     match adams_mult.compute_all_multiplications_callback(true, callback) {
         Ok(_) => {}
         Err(err_info) => {

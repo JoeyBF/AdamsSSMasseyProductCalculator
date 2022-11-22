@@ -1,11 +1,18 @@
 // cargo run --bin main
 
-// import library root
-use massey::*;
+use std::sync::Arc;
 
+// import library root
+use adams::AdamsMultiplication;
+use massey::{
+    adams::{AdamsGenerator, Bidegree},
+    *,
+};
+
+use ext::chain_complex::{ChainComplex, ChainHomotopy};
 use fp::vector::FpVector;
 
-use adams::AdamsMultiplication;
+use rayon::prelude::*;
 
 //pub mod computation;
 //use computation::ComputationResult;
@@ -37,120 +44,120 @@ use adams::AdamsMultiplication;
  *
  */
 
-/*
-impl Save for AdamsMultiplication {
-
-}
-*/
-
-fn main() -> anyhow::Result<()> {
-    let max_s = 20;
-    let max_t = 40;
-    //let mult_max_s=15;
-    //let mult_max_t=30;
-    //let mult_with_max_s=15;
-    //let mult_with_max_t=30;
-
-    println!("Loading and extending resolution...");
-    let mut adams_mult: AdamsMultiplication = AdamsMultiplication::new()?;
-    let prime = adams_mult.prime();
-
-    adams_mult.extend_resolution_to((max_s, max_t).into())?;
-
-    //fp::vector::initialize_limb_bit_index_table(adams_mult.resolution().prime());
+fn main() -> anyhow::Result<(), String> {
+    println!("Loading resolution...");
+    let mut adams_mult: AdamsMultiplication =
+        AdamsMultiplication::new().map_err(|err| err.to_string())?;
+    let p = adams_mult.prime();
 
     println!("Loading and computing multiplications...");
-    match adams_mult.compute_all_multiplications() {
-        Ok(_) => {}
-        Err(err_info) => {
-            eprintln!("{}", err_info);
-        }
-    }
+    adams_mult.compute_all_multiplications()?;
 
-    let h0 = (1, 1, FpVector::from_slice(prime, &[1])).into();
-    let h1 = (1, 2, FpVector::from_slice(prime, &[1])).into();
-    let max_massey_deg = (32, 102).into(); //(25,60).into();//(32, 96).into();
-                                           // compute Massey products
-                                           // <-,h0,h1>
-                                           /*
-                                           println!("Computing kernels for multiplication by h0 = {}...", h0);
-                                           // first compute kernels for h0
-                                           let kers_h0 = match adams_mult.compute_kernels_right_multiplication(&h0, max_massey_deg) {
-                                               Ok(kers) => kers,
-                                               Err(err_info) => {
-                                                   eprintln!("{}", err_info);
-                                                   // fail
-                                                   return error::from_string(err_info);
-                                                   //std::process::exit(-1);
-                                               }
-                                           };
-                                           println!("Computing massey products <-,{},{}>...", h0, h1);
-                                           let (deg_computed, massey_h0_h1) = adams_mult.compute_massey_prods_for_pair(&kers_h0, max_massey_deg, &h0, &h1);
-                                           println!("Massey products <-,{},{}> computed through degree {} out of {}", h0, h1, deg_computed, max_massey_deg);
-                                           let shift_deg = (1,3).into();
-                                           for (a, rep, indet) in massey_h0_h1 {
-                                               let rep_ae: AdamsElement = (a.degree() + shift_deg, rep).into();
-                                               println!("<{}, h0, h1> = {} + {}", a, rep_ae, indet.matrix);
-                                           }
-                                           */
-    println!("Computing kernels for multiplication by h1 = {}...", h1);
-    // first compute kernels for h0
-    let kers_h1 = match adams_mult.compute_kernels_right_multiplication(&h1, max_massey_deg) {
-        Ok(kers) => kers,
-        Err(err_info) => {
-            eprintln!("{}", err_info);
-            // fail
-            return Err(anyhow::anyhow!(err_info));
-            //std::process::exit(-1);
-        }
-    };
-    println!("Computing massey products <-,{},{}>...", h1, h0);
-    let (deg_computed, _) =
-        adams_mult.compute_massey_prods_for_pair(&kers_h1, max_massey_deg, &h1, &h0);
-    println!(
-        "Massey products <-,{},{}> computed through degree {} out of {}",
-        h1, h0, deg_computed, max_massey_deg
-    );
-    //let shift_deg = (1,3).into();
+    adams_mult
+        .resolution()
+        .iter_stem()
+        .par_bridge()
+        .map(|(b_s, _, b_t)| -> Result<(), String> {
+            let b_b = Bidegree::new(b_s, b_t);
+            if b_b == Bidegree::new(0, 0) {
+                return Ok(());
+            }
+            let b_num_gens = adams_mult.num_gens(b_b).unwrap_or_else(|| unreachable!());
+            for b_idx in 0..b_num_gens {
+                let b = AdamsGenerator::new(b_s, b_t, b_idx);
+                let ref_b_mults = adams_mult
+                    .multiplication_matrices()
+                    .get(&b)
+                    .unwrap_or_else(|| panic!("Multiplication not computed for generator {b}"));
+                let (_, b_mults) = ref_b_mults.value();
+                let b_hom = Arc::new(adams_mult.adams_gen_to_resoln_hom(b)?);
+                println!("Computing resolution homomorphism for element b = {b}");
+                b_hom.extend_all();
+                adams_mult
+                    .resolution()
+                    .iter_stem()
+                    .par_bridge()
+                    .map(|(c_s, _, c_t)| -> Result<(), String> {
+                        let c_b = Bidegree::new(c_s, c_t);
+                        if c_b == Bidegree::new(0, 0) {
+                            return Ok(());
+                        }
+                        let c_num_gens = adams_mult.num_gens(c_b).unwrap_or_else(|| unreachable!());
+                        if c_num_gens == 0 {
+                            eprintln!("Bidegree {c_b} empty, continuing...");
+                            return Ok(());
+                        }
+                        let tot_b = b_b + c_b;
+                        if !adams_mult
+                            .resolution()
+                            .has_computed_bidegree(tot_b.s(), tot_b.t())
+                        {
+                            eprintln!("Bidegree {tot_b} not computed, continuing...");
+                            return Ok(());
+                        }
+                        let tot_num_gens = adams_mult.num_gens(tot_b).unwrap();
+                        for c_idx in 0..c_num_gens {
+                            let c = AdamsGenerator::new(c_s, c_t, c_idx);
+                            let c_hom = Arc::new(adams_mult.adams_gen_to_resoln_hom(c)?);
+                            println!("Computing resolution homomorphism for element c = {c}");
+                            c_hom.extend_all();
+                            if let Some(m) = b_mults.get(&c_b) {
+                                let mut result = FpVector::new(p, tot_num_gens);
+                                m.value().apply(
+                                    result.as_slice_mut(),
+                                    1,
+                                    FpVector::from_slice(p, &c.vector(c_num_gens)).as_slice(),
+                                );
+                                if !result.is_zero() {
+                                    eprintln!("Product {b} * {c} is nonzero, continuing...");
+                                    continue;
+                                }
+                            }
+                            println!("Computing nullhomotopy for pair ({b}, {c})");
+                            let htpy = ChainHomotopy::new(Arc::clone(&c_hom), Arc::clone(&b_hom));
+                            htpy.extend_all();
+                        }
+                        Ok(())
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+            }
+            Ok(())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    // let h0 = (1, 1, FpVector::from_slice(p, &[1])).into();
+    // let h1 = (1, 2, FpVector::from_slice(p, &[1])).into();
 
-    // save stuff, disable for now, TODO
-    /*
-    let mut save_file = File::create(massey_product_save_file)?;
-    deg_computed.save(&mut save_file)?;
-    massey_h1_h0.len().save(&mut save_file)?;
-    for (a, prod) in massey_h1_h0 {
-        let rep_ae: AdamsElement = prod.rep_elt();
-        println!("<{}, h1, h0> = {} + {}", a, rep_ae, prod.indet().matrix);
-        a.save(&mut save_file)?;
-        prod.save(&mut save_file)?;
-    }
-    */
+    // println!("Computing kernels for multiplication by h0 = {}...", h0);
+    // // first compute kernels for h0
+    // let kers_h0 = adams_mult.compute_kernels_right_multiplication(&h0)?;
+    // println!("Computing massey products <-,{},{}>...", h0, h1);
+    // let massey_h0_h1 = adams_mult.compute_massey_prods_for_pair(&kers_h0, &h0, &h1);
+    // println!("Massey products <-,{},{}> computed", h0, h1);
+    // let shift_deg = (1, 3).into();
+    // for (a, rep) in massey_h0_h1 {
+    //     let rep_ae: AdamsElement = (a.degree() + shift_deg, rep.rep()).into();
+    //     println!("<{a}, b, c> = {rep_ae}");
+    // }
 
-    //adams_mult.compute_multiplications(mult_max_s, mult_max_t, mult_with_max_s, mult_with_max_t);
-    //adams_mult.brute_force_compute_all_massey_products((7,30).into());
-
-    /*
-    println!("Iterate over whole F_2^5");
-    for fp_vec in AllVectorsIterator::new_whole_space(adams_mult.prime(), 5) {
-        println!("fp_vec: {}", fp_vec);
-    }
-
-    let p = adams_mult.prime();
-    let input = [ vec![1, 0, 0, 1, 1]
-                , vec![0, 1, 0, 1, 0]
-                , vec![0, 0, 1, 0, 1]
-                ];
-    let mut m = Matrix::from_vec(p, &input);
-    m.row_reduce();
-    let subspace = Subspace {
-        matrix: m
-    };
-
-    println!("Iterate over subspace");
-    for fp_vec in AllVectorsIterator::new(&subspace) {
-        println!("fp_vec: {}", fp_vec);
-    }
-    */
+    //println!("Computing kernels for multiplication by h1 = {}...", h1);
+    // // first compute kernels for h0
+    // let kers_h1 = match adams_mult.compute_kernels_right_multiplication(&h1) {
+    //     Ok(kers) => kers,
+    //     Err(err_info) => {
+    //         println!("{}", err_info);
+    //         // fail
+    //         return Err(err_info);
+    //         //std::process::exit(-1);
+    //     }
+    // };
+    //println!("Computing massey products <-,{},{}>...", h1, h0);
+    // let massey_h1_h0 = adams_mult.compute_massey_prods_for_pair(&kers_h1, &h1, &h0);
+    //println!("Massey products <-,{},{}> computed", h1, h0);
+    // let shift_deg = (1, 3).into();
+    // for (a, rep) in massey_h1_h0 {
+    //     let rep_ae: AdamsElement = (a.degree() + shift_deg, rep.rep()).into();
+    //    println!("<a, b, {}> = {}", a, rep_ae);
+    // }
 
     //adams_mult.possible_nontrivial_massey_products();
 

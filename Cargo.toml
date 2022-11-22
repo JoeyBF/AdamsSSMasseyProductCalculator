@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ext = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.4", default-features = false, features = ["concurrent", "logging", "nassau", "zstd"] }
+ext = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.4", default-features = false, features = ["logging", "nassau"] }
 algebra = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.4", default-features = false, features = ["json"] }
 bivec = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.4" }
 fp = { git = "https://github.com/spectralsequences/sseq/", tag = "v0.0.4", default-features = false }
@@ -19,7 +19,8 @@ rayon = { version = "1.5", optional = true }
 regex = "1.5.4"
 
 [features]
-default = ["concurrent", "zstd"]
+default = ["concurrent", "nassau", "zstd"]
 concurrent = ["ext/concurrent", "rayon"]
+nassau = ["ext/nassau"]
 save-res = []
 zstd = ["ext/zstd"]

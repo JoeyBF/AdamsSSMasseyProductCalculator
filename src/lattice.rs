@@ -232,19 +232,19 @@ impl<T: Ord> Ord for WithMinMax<T> {
         use self::WithMinMax::*;
         match self {
             Max => match other {
-                Max => (Ordering::Equal),
-                From(_) => (Ordering::Greater),
-                Min => (Ordering::Greater),
+                Max => Ordering::Equal,
+                From(_) => Ordering::Greater,
+                Min => Ordering::Greater,
             },
             From(t1) => match other {
-                Max => (Ordering::Less),
+                Max => Ordering::Less,
                 From(t2) => t1.cmp(t2),
-                Min => (Ordering::Greater),
+                Min => Ordering::Greater,
             },
             Min => match other {
-                Max => (Ordering::Less),
-                From(_) => (Ordering::Less),
-                Min => (Ordering::Equal),
+                Max => Ordering::Less,
+                From(_) => Ordering::Less,
+                Min => Ordering::Equal,
             },
         }
     }
