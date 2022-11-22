@@ -577,7 +577,7 @@ impl AdamsMultiplication {
                 continue; // nothing in domain, or nothing in codomain, multiplication is trivially 0
                           // store nothing
             }
-            eprintln!("with {}", rhs);
+            //eprintln!("with {}", rhs);
             //let gens2 = &module2.gen_names()[j2];
             let matrix = hom.get_map(target_deg.s()).hom_k(rhs.t());
             // convert to fp::matrix::Matrix and store
@@ -803,7 +803,7 @@ impl AdamsMultiplication {
         let rhs_max = rhs_max.meet(self.max_deg()); // don't go out of range
         let f = Arc::new(callback);
         lhs_max
-            .iter_s_t()
+            .iter_stem()
             .filter(|bideg| match s_line {
                 Some(s) => bideg.s() == s,
                 None => true,
